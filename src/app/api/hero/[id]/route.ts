@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getTokenFromHeader, verifyToken } from '@/lib/auth';
+import type { JwtPayload } from 'jsonwebtoken';
 
 const updateSchema = z.object({
   title: z.string().min(2).optional(),
@@ -18,7 +19,8 @@ function isAdminRequest(request: NextRequest): boolean {
   if (adminToken && token === adminToken) return true;
   try {
     const payload = verifyToken(token);
-    return payload.role === 'admin';
+    if (typeof payload === 'string') return false;
+    return (payload as JwtPayload).role === 'admin';
   } catch {
     return false;
   }
@@ -56,18 +58,5 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: true, data: updated });
   } catch {
     return NextResponse.json({ success: false, error: 'Failed to update hero content' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    if (!isAdminRequest(request)) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await prisma.heroContent.delete({ where: { id: params.id } });
-    return NextResponse.json({ success: true, data: { deleted: true } });
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to delete hero content' }, { status: 500 });
   }
 }
