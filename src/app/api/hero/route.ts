@@ -18,7 +18,8 @@ function isAdminRequest(request: NextRequest): boolean {
   if (adminToken && token === adminToken) return true;
   try {
     const payload = verifyToken(token);
-    return payload.role === 'admin';
+    if (typeof payload === 'string') return false;
+    return (payload as { role?: string }).role === 'admin';
   } catch {
     return false;
   }
@@ -60,6 +61,6 @@ export async function POST(request: NextRequest) {
     const created = await prisma.heroContent.create({ data: parsed.data });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to create hero content' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to save hero content' }, { status: 500 });
   }
 }

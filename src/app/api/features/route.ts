@@ -16,7 +16,8 @@ function isAdminRequest(request: NextRequest): boolean {
   if (adminToken && token === adminToken) return true;
   try {
     const payload = verifyToken(token);
-    return payload.role === 'admin';
+    if (typeof payload === 'string') return false;
+    return (payload as { role?: string }).role === 'admin';
   } catch {
     return false;
   }
