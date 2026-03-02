@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
-import { useToast } from '@/providers/ToastProvider';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface ContactMessage {
   id: string;
@@ -14,122 +12,66 @@ interface ContactMessage {
   createdAt: string;
 }
 
-export function ContactTable() {
-  const { notify } = useToast();
-  const [token, setToken] = useState('');
-  const [search, setSearch] = useState('');
-  const [items, setItems] = useState<ContactMessage[]>([]);
-  const [selected, setSelected] = useState<ContactMessage | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const headers = useMemo(() => ({
-    'Content-Type': 'application/json',
-    Authorization: token ? `Bearer ${token}` : ''
-  }), [token]);
-
-  const load = async () => {
-    if (!token) return;
-    setLoading(true);
-    const res = await fetch(`/api/contact?search=${encodeURIComponent(search)}`, { headers });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      notify(data.error || 'Failed to load messages', 'error');
-      return;
-    }
-    setItems(data.items || []);
-  };
+export default function ContactTable() {
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('adminToken');
-    if (stored) setToken(stored);
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const res = await api.get<{ messages: ContactMessage[] }>('/api/contact');
+      if (res.error) {
+        setError(res.error);
+      } else if (res.data?.messages) {
+        setMessages(res.data.messages);
+      }
+      setLoading(false);
+    };
+    load();
   }, []);
 
-  useEffect(() => {
-    if (token) localStorage.setItem('adminToken', token);
-  }, [token]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Spinner className="h-6 w-6" />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    load();
-  }, [token, search]);
+  if (error) {
+    return <p className="text-sm text-red-500">{error}</p>;
+  }
 
-  const onDelete = async (id: string) => {
-    const res = await fetch(`/api/contact/${id}`, { method: 'DELETE', headers });
-    const data = await res.json();
-    if (!res.ok) {
-      notify(data.error || 'Failed to delete', 'error');
-      return;
-    }
-    notify('Message deleted', 'success');
-    setItems(prev => prev.filter(item => item.id !== id));
-  };
+  if (!messages.length) {
+    return <p className="text-sm text-secondary">No contact submissions yet.</p>;
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Input
-          label="Admin Token"
-          value={token}
-          onChange={e => setToken(e.target.value)}
-          helperText="Enter ADMIN_TOKEN to access messages"
-        />
-        <Input
-          label="Search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          helperText="Filter by name, email, or message"
-        />
-      </div>
-
-      {loading && <p className="text-secondary">Loading...</p>}
-
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted text-left">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Message</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3">Actions</th>
+    <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-4 py-3">Name</th>
+            <th className="px-4 py-3">Email</th>
+            <th className="px-4 py-3">Message</th>
+            <th className="px-4 py-3">Received</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {messages.map((message) => (
+            <tr key={message.id} className="bg-white">
+              <td className="px-4 py-3 font-medium text-slate-900">{message.name}</td>
+              <td className="px-4 py-3 text-slate-700">{message.email}</td>
+              <td className="px-4 py-3 text-slate-700">{message.message}</td>
+              <td className="px-4 py-3 text-slate-500">
+                {new Date(message.createdAt).toLocaleDateString()}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {items.map(item => (
-              <tr key={item.id} className="border-t border-border">
-                <td className="px-4 py-3">{item.name}</td>
-                <td className="px-4 py-3">{item.email}</td>
-                <td className="px-4 py-3">{item.message.slice(0, 50)}...</td>
-                <td className="px-4 py-3">{new Date(item.createdAt).toLocaleString()}</td>
-                <td className="px-4 py-3 space-x-2">
-                  <Button size="sm" variant="outline" onClick={() => setSelected(item)}>View</Button>
-                  <Button size="sm" variant="destructive" onClick={() => onDelete(item.id)}>Delete</Button>
-                </td>
-              </tr>
-            ))}
-            {!items.length && (
-              <tr>
-                <td className="px-4 py-6 text-center text-secondary" colSpan={5}>
-                  No messages yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <Modal isOpen={!!selected} onClose={() => setSelected(null)} title="Message Details">
-        {selected && (
-          <div className="space-y-2">
-            <p><span className="font-semibold">Name:</span> {selected.name}</p>
-            <p><span className="font-semibold">Email:</span> {selected.email}</p>
-            <p><span className="font-semibold">Message:</span> {selected.message}</p>
-            <p><span className="font-semibold">Created:</span> {new Date(selected.createdAt).toLocaleString()}</p>
-          </div>
-        )}
-      </Modal>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
-
-export default ContactTable;
