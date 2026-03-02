@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getTokenFromHeader, verifyToken } from '@/lib/auth';
@@ -16,6 +17,9 @@ function isAdminRequest(request: NextRequest): boolean {
   if (adminToken && token === adminToken) return true;
   try {
     const payload = verifyToken(token);
+    if (typeof payload === 'string' || !('role' in payload)) {
+      return false;
+    }
     return payload.role === 'admin';
   } catch {
     return false;
@@ -55,26 +59,5 @@ export async function GET(request: NextRequest) {
           OR: [
             { name: { contains: search } },
             { email: { contains: search } },
-            { message: { contains: search } }
-          ]
-        }
-      : {};
-
-    const [items, total] = await Promise.all([
-      prisma.contactMessage.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit
-      }),
-      prisma.contactMessage.count({ where })
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      data: { items, total, page, limit }
-    });
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to load messages' }, { status: 500 });
-  }
-}
+            { m
+... [truncated]
