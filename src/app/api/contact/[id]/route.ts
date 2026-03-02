@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getTokenFromHeader, verifyToken } from '@/lib/auth';
+import type { JwtPayload } from 'jsonwebtoken';
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -16,7 +17,10 @@ function isAdminRequest(request: NextRequest): boolean {
   if (adminToken && token === adminToken) return true;
   try {
     const payload = verifyToken(token);
-    return payload.role === 'admin';
+    if (typeof payload === 'object' && payload && 'role' in payload) {
+      return (payload as JwtPayload & { role?: string }).role === 'admin';
+    }
+    return false;
   } catch {
     return false;
   }
@@ -68,7 +72,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     await prisma.contactMessage.delete({ where: { id: params.id } });
-    return NextResponse.json({ success: true, data: { deleted: true } });
+    return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ success: false, error: 'Failed to delete message' }, { status: 500 });
   }
