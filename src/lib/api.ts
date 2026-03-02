@@ -1,34 +1,41 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+type ApiResult<T> = {
+  data?: T;
+  error?: string;
+};
 
-interface ApiResponse<T> {
-  data: T | null;
-  error: string | null;
-}
+async function parseJson<T>(response: Response): Promise<ApiResult<T>> {
+  const contentType = response.headers.get('content-type');
+  const isJson = contentType?.includes('application/json');
+  const payload = isJson ? await response.json() : null;
 
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
-  try {
-    const res = await fetch(`${BASE_URL}${url}`, {
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      credentials: 'include',
-      ...options,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      return { data: null, error: err.error || err.message || res.statusText };
-    }
-    const data = await res.json();
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Network error' };
+  if (!response.ok) {
+    return { error: payload?.error || payload?.message || 'Request failed' };
   }
+
+  return { data: payload as T };
 }
 
 export const api = {
-  get: <T>(url: string) => apiFetch<T>(url, { method: 'GET' }),
-  post: <T>(url: string, body: unknown) => apiFetch<T>(url, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(url: string, body: unknown) => apiFetch<T>(url, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: <T>(url: string, body: unknown) => apiFetch<T>(url, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(url: string) => apiFetch<T>(url, { method: 'DELETE' }),
-};
+  async get<T>(url: string): Promise<ApiResult<T>> {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
-export default api;
+    return parseJson<T>(response);
+  },
+
+  async post<T, B = unknown>(url: string, body: B): Promise<ApiResult<T>> {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    return parseJson<T>(response);
+  }
+};

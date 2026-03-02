@@ -1,27 +1,29 @@
 import bcrypt from 'bcryptjs';
-import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import type { Secret, SignOptions } from 'jsonwebtoken';
 
-const JWT_SECRET: Secret = process.env.JWT_SECRET || 'dev-secret-change-me';
+const jwtSecret: Secret = process.env.JWT_SECRET || 'dev-secret';
 
-export async function hashPassword(password: string): Promise<string> {
+export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-export function signToken(payload: object): string {
-  const options: SignOptions = { expiresIn: '24h' };
-  return jwt.sign(payload, JWT_SECRET, options);
+export function signToken(payload: Record<string, unknown>): string {
+  const options: SignOptions = { expiresIn: '7d' };
+  return jwt.sign(payload, jwtSecret, options);
 }
 
-export function verifyToken(token: string): jwt.JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+export function verifyToken(token: string): unknown {
+  return jwt.verify(token, jwtSecret);
 }
 
-export function getTokenFromHeader(authHeader: string | null): string | null {
-  if (!authHeader) return null;
-  const parts = authHeader.split(' ');
-  return parts[0] === 'Bearer' && parts[1] ? parts[1] : null;
+export function getTokenFromHeader(header: string | null): string | null {
+  if (!header) return null;
+  const [type, token] = header.split(' ');
+  if (type?.toLowerCase() !== 'bearer' || !token) return null;
+  return token;
 }
