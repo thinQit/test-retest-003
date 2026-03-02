@@ -59,5 +59,32 @@ export async function GET(request: NextRequest) {
           OR: [
             { name: { contains: search } },
             { email: { contains: search } },
-            { m
-... [truncated]
+            { message: { contains: search } }
+          ]
+        }
+      : undefined;
+
+    const [total, messages] = await Promise.all([
+      prisma.contactMessage.count({ where }),
+      prisma.contactMessage.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit
+      })
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: messages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch {
+    return NextResponse.json({ success: false, error: 'Failed to fetch messages' }, { status: 500 });
+  }
+}
