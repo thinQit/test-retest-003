@@ -8,18 +8,16 @@ interface Feature {
 export default function FeaturesGrid({ features }: { features: Feature[] }) {
   if (!features.length) {
     return (
-      <section className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="rounded-lg border border-border bg-white p-6 text-secondary">
-          No features available yet.
-        </div>
+      <section className="mx-auto max-w-4xl px-6 py-12 text-center text-secondary">
+        Features will appear here once they are configured.
       </section>
     );
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-10 md:grid-cols-3">
+    <section className="mx-auto grid max-w-6xl gap-6 px-6 py-12 md:grid-cols-3">
       {features.map((feature) => (
-        <div key={feature.id} className="rounded-lg border border-border bg-white p-6 shadow-sm">
+        <div key={feature.id} className="rounded-lg border p-6">
           <h3 className="text-lg font-semibold">{feature.title}</h3>
           <p className="mt-2 text-sm text-secondary">{feature.description}</p>
         </div>

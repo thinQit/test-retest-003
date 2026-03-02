@@ -1,24 +1,29 @@
 interface HeroContent {
-  title?: string;
-  subtitle?: string;
-  ctaText?: string;
-  ctaUrl?: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaUrl: string;
   imageUrl?: string;
 }
 
 export default function Hero({ content }: { content: HeroContent | null }) {
+  const title = content?.title ?? 'Welcome to our platform';
+  const subtitle = content?.subtitle ?? 'We help teams launch faster with a modern experience.';
+  const ctaText = content?.ctaText ?? 'Get Started';
+  const ctaUrl = content?.ctaUrl ?? '#contact';
+
   return (
-    <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-16 text-center">
-      <h1 className="text-4xl font-bold">{content?.title ?? 'Welcome to our platform'}</h1>
-      <p className="text-secondary">{content?.subtitle ?? 'Build something great with us.'}</p>
-      {content?.ctaText && content?.ctaUrl ? (
+    <section className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-16 text-center">
+      <h1 className="text-4xl font-bold sm:text-5xl">{title}</h1>
+      <p className="text-lg text-secondary">{subtitle}</p>
+      <div>
         <a
-          className="mx-auto inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-          href={content.ctaUrl}
+          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
+          href={ctaUrl}
         >
-          {content.ctaText}
+          {ctaText}
         </a>
-      ) : null}
+      </div>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 export default function ContactTable() {
   return (
-    <div className="rounded-lg border border-border bg-white p-6 shadow-sm">
-      <div className="text-sm text-secondary">No contact submissions yet.</div>
+    <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-sm text-secondary">
+      No contact submissions yet.
     </div>
   );
 }
